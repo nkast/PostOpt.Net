@@ -62,6 +62,28 @@ namespace testApp
             System.Console.WriteLine("TestMethodAddOp(): " + sw.Elapsed.TotalMilliseconds+"ms");
 
             sw.Reset();
+
+            sw.Start();
+            for (int c = 0; c < 10000000; c++)
+            {
+                r = TestMethodAddOp(a, b);
+            }
+            sw.Stop();
+            System.Diagnostics.Trace.WriteLine("TestMethodAddOp(v,v): " + sw.Elapsed.TotalMilliseconds+"ms");
+            System.Console.WriteLine("TestMethodAddOp(v,v): " + sw.Elapsed.TotalMilliseconds+"ms");
+
+            sw.Reset();
+
+            sw.Start();
+            for (int c = 0; c < 10000000; c++)
+            {
+                r = TestMethodAddOp(a, ref b);
+            }
+            sw.Stop();
+            System.Diagnostics.Trace.WriteLine("TestMethodAddOp(v,v): " + sw.Elapsed.TotalMilliseconds+"ms");
+            System.Console.WriteLine("TestMethodAddOp(v,ref v): " + sw.Elapsed.TotalMilliseconds+"ms");
+
+            sw.Reset();
             
             sw.Start();
             for (int c = 0; c < 10000000; c++)
@@ -155,6 +177,21 @@ namespace testApp
             Vector2 r;
 
             Vector2.Add(a, b, out r);
+            return r;
+        }
+
+        // methods with args
+        public static Vector2 TestMethodAddOp(Vector2 a, Vector2 b)
+        {
+            Vector2 r;
+            r = a + b;
+            return r;
+        }
+
+        public static Vector2 TestMethodAddOp(Vector2 a, ref Vector2 b)
+        {
+            Vector2 r;
+            r = a + b;
             return r;
         }
     }
