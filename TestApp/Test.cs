@@ -43,11 +43,11 @@ namespace testApp
             sw.Start();
             for (int c = 0; c < 10000000; c++)
             {
-                r = Vector2.Add_vrv(a, ref b);
+                r = Vector2.Add(a, ref b);
             }
             sw.Stop();
-            System.Diagnostics.Trace.WriteLine("Add_vrv(valuetype,ref): " + sw.Elapsed.TotalMilliseconds+"ms");
-            System.Console.WriteLine("Add_vrv(valuetype, ref): " + sw.Elapsed.TotalMilliseconds+"ms");
+            System.Diagnostics.Trace.WriteLine("Add(val,ref): " + sw.Elapsed.TotalMilliseconds+"ms");
+            System.Console.WriteLine("Add(val,ref): " + sw.Elapsed.TotalMilliseconds+"ms");
 
 
             ///////
@@ -114,7 +114,7 @@ namespace testApp
             Vector2 b = new Vector2(7,11);
             Vector2 r;
 
-            r = Vector2.Add_vvv(a, b);
+            r = Vector2.Add(a, b);
             return r;
         }
          
@@ -124,7 +124,7 @@ namespace testApp
             Vector2 b = new Vector2(7,11);
             Vector2 r;
 
-            r = Vector2.Add_rvv(ref a, b);
+            r = Vector2.Add(ref a, b);
             return r;
         }
 
@@ -134,7 +134,7 @@ namespace testApp
             Vector2 b = new Vector2(7,11);
             Vector2 r;
 
-            r = Vector2.Add_vrv(a, ref b);
+            r = Vector2.Add(a, ref b);
             return r;
         }
                 
@@ -144,7 +144,7 @@ namespace testApp
             Vector2 b = new Vector2(7,11);
             Vector2 r;
 
-            r = Vector2.Add_rrv(ref a, ref b);
+            r = Vector2.Add(ref a, ref b);
             return r;
         }  
 
@@ -154,7 +154,7 @@ namespace testApp
             Vector2 b = new Vector2(7,11);
             Vector2 r;
 
-            Vector2.Add4(a, b, out r);
+            Vector2.Add(a, b, out r);
             return r;
         }
     }

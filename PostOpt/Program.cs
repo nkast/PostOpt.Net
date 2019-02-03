@@ -132,7 +132,7 @@ namespace PostOpt
                                 var test = operand.DeclaringType.Resolve();
                                 foreach (var method in test.Methods)
                                 {
-                                    if (method.Name == "Add_vrv" &&
+                                    if (method.Name == "Add" &&
                                         method.Parameters.Count == 2 &&
                                         method.Parameters[0].ParameterType.IsByReference == false &&
                                         method.Parameters[1].ParameterType.IsByReference == true)
@@ -158,7 +158,7 @@ namespace PostOpt
                                 var test = operand.DeclaringType.Resolve();
                                 foreach (var method in test.Methods)
                                 {
-                                    if (method.Name == "Add_vvv" &&
+                                    if (method.Name == "Add" &&
                                         method.Parameters.Count == 2 &&
                                         method.Parameters[0].ParameterType.IsByReference == false &&
                                         method.Parameters[1].ParameterType.IsByReference == false)
