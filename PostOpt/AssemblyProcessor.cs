@@ -84,19 +84,29 @@ namespace PostOpt
                             if (prevInstruction.OpCode.Code == Code.Ldloc_0 ||
                                 prevInstruction.OpCode.Code == Code.Ldloc_1 ||
                                 prevInstruction.OpCode.Code == Code.Ldloc_2 ||
-                                prevInstruction.OpCode.Code == Code.Ldloc_3)
+                                prevInstruction.OpCode.Code == Code.Ldloc_3 ||
+                                prevInstruction.OpCode.Code == Code.Ldloc_S ||
+                                prevInstruction.OpCode.Code == Code.Ldloc   )
                             {
-
                                 Instruction newLdloca = null;
                                 if (prevInstruction.OpCode.Code == Code.Ldloc_0)
                                     newLdloca = processor.Create(OpCodes.Ldloca_S, processor.Body.Variables[0]);
-                                if (prevInstruction.OpCode.Code == Code.Ldloc_1)
+                                else if (prevInstruction.OpCode.Code == Code.Ldloc_1)
                                     newLdloca = processor.Create(OpCodes.Ldloca_S, processor.Body.Variables[1]);
-                                if (prevInstruction.OpCode.Code == Code.Ldloc_2)
+                                else if (prevInstruction.OpCode.Code == Code.Ldloc_2)
                                     newLdloca = processor.Create(OpCodes.Ldloca_S, processor.Body.Variables[2]);
-                                if (prevInstruction.OpCode.Code == Code.Ldloc_3)
+                                else if (prevInstruction.OpCode.Code == Code.Ldloc_3)
                                     newLdloca = processor.Create(OpCodes.Ldloca_S, processor.Body.Variables[3]);
-
+                                else if (prevInstruction.OpCode.Code == Code.Ldloc_S)
+                                {
+                                    var varDef = prevInstruction.Operand as VariableDefinition;
+                                    newLdloca = processor.Create(OpCodes.Ldloca_S, processor.Body.Variables[varDef.Index]);
+                                }
+                                else if (prevInstruction.OpCode.Code == Code.Ldloc)
+                                {
+                                    var varDef = prevInstruction.Operand as VariableDefinition;
+                                    newLdloca = processor.Create(OpCodes.Ldloca, processor.Body.Variables[varDef.Index]);
+                                }
 
                                 //var callsite = new CallSite(operand.ReturnType);
                                 //callsite.CallingConvention = MethodCallingConvention.StdCall;
