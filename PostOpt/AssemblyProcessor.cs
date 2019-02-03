@@ -73,20 +73,20 @@ namespace PostOpt
             {
                 if (instruction.OpCode == OpCodes.Call)
                 {
-                    var operand = instruction.Operand as MethodReference;
-                    if (operand.Name == "op_Addition")
+                    var callInstruction = instruction;
+                    var callMethodRef = callInstruction.Operand as MethodReference;
+                    if (callMethodRef.Name == "op_Addition")
                     {
-                        if (operand.DeclaringType.FullName == "Xna.Framework.Vector2")
+                        if (callMethodRef.DeclaringType.FullName == "Xna.Framework.Vector2")
                         {
-                            var call_Op_Addition = instruction;
-                            var prevInstruction = call_Op_Addition.Previous;
+                            var prevInstruction = callInstruction.Previous;
 
                             if (prevInstruction.OpCode.Code == Code.Ldloc_0 ||
                                 prevInstruction.OpCode.Code == Code.Ldloc_1 ||
                                 prevInstruction.OpCode.Code == Code.Ldloc_2 ||
                                 prevInstruction.OpCode.Code == Code.Ldloc_3 ||
                                 prevInstruction.OpCode.Code == Code.Ldloc_S ||
-                                prevInstruction.OpCode.Code == Code.Ldloc   )
+                                prevInstruction.OpCode.Code == Code.Ldloc)
                             {
                                 Instruction newLdloca = null;
                                 if (prevInstruction.OpCode.Code == Code.Ldloc_0)
@@ -118,7 +118,7 @@ namespace PostOpt
                                 //var instr = processor.Create(OpCodes.Call, callsite);
 
                                 MethodReference MethodDefAdd_vrv = null;
-                                var test = operand.DeclaringType.Resolve();
+                                var test = callMethodRef.DeclaringType.Resolve();
                                 foreach (var method in test.Methods)
                                 {
                                     if (method.Name == "Add" &&
@@ -131,13 +131,13 @@ namespace PostOpt
                                     }
                                 }
 
-                                var methodRefAdd_vrv = operand.DeclaringType.Module.ImportReference(MethodDefAdd_vrv);
+                                var methodRefAdd_vrv = callMethodRef.DeclaringType.Module.ImportReference(MethodDefAdd_vrv);
                                 var add_vrvInstruction = processor.Create(OpCodes.Call, methodRefAdd_vrv);
 
                                 // replace 'Ldloc' with 'Ldloca'
                                 processor.Replace(prevInstruction, newLdloca);
                                 // replace 'vector2 Add(vector2,vector2)' with 'vector2 Add(vector2,vector2)'
-                                processor.Replace(call_Op_Addition, add_vrvInstruction);
+                                processor.Replace(callInstruction, add_vrvInstruction);
 
                                 return true;
                             }
@@ -173,13 +173,13 @@ namespace PostOpt
                                 }
                                 else if (prevInstruction.OpCode.Code == Code.Ldarg_S)
                                 {
-                                    var varDef = prevInstruction.Operand as VariableDefinition;                                    
+                                    var varDef = prevInstruction.Operand as VariableDefinition;
                                     n = varDef.Index;
                                     newLdarga = processor.Create(OpCodes.Ldloca_S, processor.Body.Method.Parameters[n]);
                                 }
                                 else if (prevInstruction.OpCode.Code == Code.Ldarg)
                                 {
-                                    var varDef = prevInstruction.Operand as VariableDefinition;                                    
+                                    var varDef = prevInstruction.Operand as VariableDefinition;
                                     n = varDef.Index;
                                     newLdarga = processor.Create(OpCodes.Ldarga, processor.Body.Method.Parameters[n]);
                                 }
@@ -199,7 +199,7 @@ namespace PostOpt
                                 //var instr = processor.Create(OpCodes.Call, callsite);
 
                                 MethodReference MethodDefAdd_vrv = null;
-                                var test = operand.DeclaringType.Resolve();
+                                var test = callMethodRef.DeclaringType.Resolve();
                                 foreach (var method in test.Methods)
                                 {
                                     if (method.Name == "Add" &&
@@ -212,20 +212,101 @@ namespace PostOpt
                                     }
                                 }
 
-                                var methodRefAdd_vrv = operand.DeclaringType.Module.ImportReference(MethodDefAdd_vrv);
+                                var methodRefAdd_vrv = callMethodRef.DeclaringType.Module.ImportReference(MethodDefAdd_vrv);
                                 var add_vrvInstruction = processor.Create(OpCodes.Call, methodRefAdd_vrv);
-                                
+
                                 // replace 'Ldarg' with 'Ldarga'
                                 processor.Replace(prevInstruction, newLdarga);
-                                // replace 'vector2 Add(vector2,vector2)' with 'vector2 Add(vector2,vector2)'
-                                processor.Replace(call_Op_Addition, add_vrvInstruction);
-                                
+                                // replace 'vector2 Add(vector2,vector2)' with 'vector2 Add(vector2, ref vector2)'
+                                processor.Replace(callInstruction, add_vrvInstruction);
+
                                 return true;
+                            }
+                            else if (prevInstruction.OpCode.Code == Code.Ldobj)
+                            {
+                                var ldtype = prevInstruction.Operand;
+                                var type = callMethodRef.Parameters[1];
+                                                                
+                                var prev2Instruction = prevInstruction.Previous;
+                                if ( (prev2Instruction.OpCode.Code == Code.Ldarg_0 ||
+                                      prev2Instruction.OpCode.Code == Code.Ldarg_1 ||
+                                      prev2Instruction.OpCode.Code == Code.Ldarg_2 ||
+                                      prev2Instruction.OpCode.Code == Code.Ldarg_3 ||
+                                      prev2Instruction.OpCode.Code == Code.Ldarg_S ||
+                                      prev2Instruction.OpCode.Code == Code.Ldarg)
+                                      )
+                                {
+
+                                    int n = -1;
+                                    Instruction newLdarga = null;
+                                    if (prev2Instruction.OpCode.Code == Code.Ldarg_0)
+                                    {
+                                        n = 0;
+                                        newLdarga = processor.Create(OpCodes.Ldarga_S, processor.Body.Method.Parameters[n]);
+                                    }
+                                    else if (prev2Instruction.OpCode.Code == Code.Ldarg_1)
+                                    {
+                                        n = 1;
+                                        newLdarga = processor.Create(OpCodes.Ldarga_S, processor.Body.Method.Parameters[n]);
+                                    }
+                                    else if (prev2Instruction.OpCode.Code == Code.Ldarg_2)
+                                    {
+                                        n = 2;
+                                        newLdarga = processor.Create(OpCodes.Ldarga_S, processor.Body.Method.Parameters[n]);
+                                    }
+                                    else if (prev2Instruction.OpCode.Code == Code.Ldarg_3)
+                                    {
+                                        n = 3;
+                                        newLdarga = processor.Create(OpCodes.Ldarga_S, processor.Body.Method.Parameters[n]);
+                                    }
+                                    else if (prev2Instruction.OpCode.Code == Code.Ldarg_S)
+                                    {
+                                        var varDef = prev2Instruction.Operand as VariableDefinition;
+                                        n = varDef.Index;
+                                        newLdarga = processor.Create(OpCodes.Ldloca_S, processor.Body.Method.Parameters[n]);
+                                    }
+                                    else if (prev2Instruction.OpCode.Code == Code.Ldarg)
+                                    {
+                                        var varDef = prev2Instruction.Operand as VariableDefinition;
+                                        n = varDef.Index;
+                                        newLdarga = processor.Create(OpCodes.Ldarga, processor.Body.Method.Parameters[n]);
+                                    }
+
+                                    // check validity of parameter n
+                                    var targParam = currentMethod.Parameters[n];
+                                    if (targParam.ParameterType.IsByReference == false)
+                                        throw new InvalidOperationException();
+
+                                    MethodReference MethodDefAdd_vrv = null;
+                                    var test = callMethodRef.DeclaringType.Resolve();
+                                    foreach (var method in test.Methods)
+                                    {
+                                        if (method.Name == "Add" &&
+                                            method.Parameters.Count == 2 &&
+                                            method.Parameters[0].ParameterType.IsByReference == false &&
+                                            method.Parameters[1].ParameterType.IsByReference == true)
+                                        {
+                                            MethodDefAdd_vrv = method;
+                                            break;
+                                        }
+                                    }
+                                    
+                                    var methodRefAdd_vrv = callMethodRef.DeclaringType.Module.ImportReference(MethodDefAdd_vrv);
+                                    var add_vrvInstruction = processor.Create(OpCodes.Call, methodRefAdd_vrv);
+
+                                    // replace 'Ldarg' with 'Ldarga'
+                                    //processor.Replace(prevInstruction, newLdarga);
+                                    processor.Remove(prevInstruction);
+                                    // replace 'vector2 Add(vector2,vector2)' with 'vector2 Add(vector2, ref vector2)'
+                                    processor.Replace(callInstruction, add_vrvInstruction);
+                                    
+                                    return true;
+                                }
                             }
                             else
                             {
                                 MethodReference MethodDefAdd_vvv = null;
-                                var test = operand.DeclaringType.Resolve();
+                                var test = callMethodRef.DeclaringType.Resolve();
                                 foreach (var method in test.Methods)
                                 {
                                     if (method.Name == "Add" &&
@@ -238,7 +319,7 @@ namespace PostOpt
                                     }
                                 }
 
-                                var methodRefAdd_vvv = operand.DeclaringType.Module.ImportReference(MethodDefAdd_vvv);
+                                var methodRefAdd_vvv = callMethodRef.DeclaringType.Module.ImportReference(MethodDefAdd_vvv);
                                 var add_vvvInstruction = processor.Create(OpCodes.Call, methodRefAdd_vvv);
 
                                 // test replace method. 

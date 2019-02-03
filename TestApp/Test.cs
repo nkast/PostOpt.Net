@@ -80,7 +80,7 @@ namespace testApp
                 r = TestMethodAddOp(a, ref b);
             }
             sw.Stop();
-            System.Diagnostics.Trace.WriteLine("TestMethodAddOp(v,v): " + sw.Elapsed.TotalMilliseconds+"ms");
+            System.Diagnostics.Trace.WriteLine("TestMethodAddOp(v,ref v): " + sw.Elapsed.TotalMilliseconds+"ms");
             System.Console.WriteLine("TestMethodAddOp(v,ref v): " + sw.Elapsed.TotalMilliseconds+"ms");
 
             sw.Reset();
@@ -192,6 +192,13 @@ namespace testApp
         {
             Vector2 r;
             r = a + b;
+            return r;
+        }
+
+        public static Vector2 TestMethodAdd_vrv(Vector2 a, ref Vector2 b)
+        {
+            Vector2 r;
+            r = Vector2.Add(a, ref b);
             return r;
         }
     }
