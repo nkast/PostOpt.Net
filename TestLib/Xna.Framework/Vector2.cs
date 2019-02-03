@@ -15,9 +15,10 @@ namespace Xna.Framework
 
         public static Vector2 operator +(Vector2 a, Vector2 b)
         {
-            a.X += b.X;
-            a.Y += b.Y;
-            return a;
+            Vector2 r;
+            r.X = a.X + b.X;
+            r.Y = a.Y + b.Y;
+            return r;
         }                
                 
         public static Vector2 Add(Vector2 a, Vector2 b)
