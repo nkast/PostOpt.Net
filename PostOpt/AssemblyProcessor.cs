@@ -66,19 +66,39 @@ namespace PostOpt
         private bool ProcessMethod(MethodDefinition currentMethod)
         {
             var processor = currentMethod.Body.GetILProcessor();
-            
+
             foreach (var instruction in currentMethod.Body.Instructions)
             {
                 if (Match_Call(instruction))
                 {
                     var callInstruction = instruction;
                     var callMethodRef = callInstruction.Operand as MethodReference;
-                    if (callMethodRef.Name == "op_Addition")
+
+                    if (callMethodRef.DeclaringType.FullName == "Xna.Framework.Vector2")
                     {
-                        if (callMethodRef.DeclaringType.FullName == "Xna.Framework.Vector2")
+                        if (callMethodRef.Name == "op_Addition")
                         {
                             var result = ProcessOpCall(processor, callInstruction, callMethodRef, "Add");
-                            return result;
+                            if (result)
+                                return true;
+                        }
+                        if (callMethodRef.Name == "op_Subtraction")
+                        {
+                            var result = ProcessOpCall(processor, callInstruction, callMethodRef, "Subtract");
+                            if (result)
+                                return true;
+                        }
+                        if (callMethodRef.Name == "op_Multiply")
+                        {
+                            var result = ProcessOpCall(processor, callInstruction, callMethodRef, "Multiply");
+                            if (result)
+                                return true;
+                        }
+                        if (callMethodRef.Name == "op_Division")
+                        {
+                            var result = ProcessOpCall(processor, callInstruction, callMethodRef, "Divide");
+                            if (result)
+                                return true;
                         }
                     }
                 }
@@ -102,6 +122,8 @@ namespace PostOpt
                 Instruction newLdlocaInstruction = Ldloc2Ldloca(processor, LdlocInstruction, out n);
 
                 Instruction add_vrvInstruction = GetMethodRefOp_vrv(processor, callMethodRef, methodOpName);
+                if(add_vrvInstruction == null)
+                    return false;
 
                 // replace 'Ldloc' with 'Ldloca'
                 processor.Replace(LdlocInstruction, newLdlocaInstruction);
@@ -122,6 +144,9 @@ namespace PostOpt
                     throw new InvalidOperationException();
 
                 Instruction add_vrvInstruction = GetMethodRefOp_vrv(processor, callMethodRef, methodOpName);
+                if (add_vrvInstruction == null)
+                    return false;
+
 
                 // replace 'Ldarg' with 'Ldarga'
                 processor.Replace(LdargInstruction, newLdargaInstruction);
@@ -150,6 +175,9 @@ namespace PostOpt
                     if (targParam.ParameterType.IsByReference == false)
                         throw new InvalidOperationException();
                     Instruction add_vrvInstruction = GetMethodRefOp_vrv(processor, callMethodRef, methodOpName);
+                    if (add_vrvInstruction == null)
+                        return false;
+
 
                     // replace 'Ldarg' with 'Ldarga'
                     //processor.Replace(prevInstruction, newLdarga);
@@ -162,7 +190,10 @@ namespace PostOpt
             }
             else
             {
-                GetMethodRefOp_vvv(processor, callMethodRef, methodOpName);
+                Instruction add_vvvInstruction = GetMethodRefOp_vvv(processor, callMethodRef, methodOpName);
+                if (add_vvvInstruction == null)
+                    return false;
+
 
                 // test replace method. 
                 // Add_vvv is identical to operator+
@@ -191,12 +222,18 @@ namespace PostOpt
                 }
             }
 
+            if (MethodDefOp_vrv == null)
+            {
+                //method not found
+                return null;
+            }
+
             var methodRefOp_vrv = callMethodRef.DeclaringType.Module.ImportReference(MethodDefOp_vrv);
             var op_vrvInstruction = processor.Create(OpCodes.Call, methodRefOp_vrv);
             return op_vrvInstruction;
         }
                 
-        private static void GetMethodRefOp_vvv(ILProcessor processor, MethodReference callMethodRef, string methodOpName)
+        private static Instruction GetMethodRefOp_vvv(ILProcessor processor, MethodReference callMethodRef, string methodOpName)
         {
             MethodReference MethodDefOp_vvv = null;
             var test = callMethodRef.DeclaringType.Resolve();
@@ -212,8 +249,15 @@ namespace PostOpt
                 }
             }
 
+            if (MethodDefOp_vvv == null)
+            {
+                //method not found
+                return null;
+            }
+
             var methodRefOp_vvv = callMethodRef.DeclaringType.Module.ImportReference(MethodDefOp_vvv);
             var op_vvvInstruction = processor.Create(OpCodes.Call, methodRefOp_vvv);
+            return op_vvvInstruction;
         }
 
         private static Instruction Ldloc2Ldloca(ILProcessor processor, Instruction LdlocInstruction, out int n)
