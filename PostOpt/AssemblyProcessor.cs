@@ -209,8 +209,8 @@ namespace PostOpt
         private static Instruction GetMethodRefOp_vrv(ILProcessor processor, MethodReference callMethodRef, string methodOpName)
         {
             MethodReference MethodDefOp_vrv = null;
-            var test = callMethodRef.DeclaringType.Resolve();
-            foreach (var method in test.Methods)
+            var typeDef = callMethodRef.DeclaringType.Resolve();
+            foreach (var method in typeDef.Methods)
             {
                 if (method.Name == methodOpName &&
                     method.Parameters.Count == 2 &&
@@ -236,8 +236,8 @@ namespace PostOpt
         private static Instruction GetMethodRefOp_vvv(ILProcessor processor, MethodReference callMethodRef, string methodOpName)
         {
             MethodReference MethodDefOp_vvv = null;
-            var test = callMethodRef.DeclaringType.Resolve();
-            foreach (var method in test.Methods)
+            var typeDef = callMethodRef.DeclaringType.Resolve();
+            foreach (var method in typeDef.Methods)
             {
                 if (method.Name == methodOpName &&
                     method.Parameters.Count == 2 &&
