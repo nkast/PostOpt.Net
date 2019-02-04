@@ -74,6 +74,11 @@ namespace PostOpt
                     var callInstruction = instruction;
                     var callMethodRef = callInstruction.Operand as MethodReference;
 
+                    if (callMethodRef.HasThis) // non-static?
+                        continue;                     
+                    if (!callMethodRef.HasParameters)
+                        continue;
+
                     if (callMethodRef.DeclaringType.FullName == "Xna.Framework.Vector2")
                     {
                         if (callMethodRef.Name == "op_Addition")
@@ -100,6 +105,7 @@ namespace PostOpt
                             if (result)
                                 return true;
                         }
+                        
                     }
                 }
             }
@@ -108,10 +114,29 @@ namespace PostOpt
         }
 
         private bool ProcessOpCall(ILProcessor processor, Instruction callInstruction, MethodReference callMethodRef, string methodOpName)
-        {            
+        {
+            if (callMethodRef.ReturnType.FullName == "System.Void")
+            {
+                var lastParam = callMethodRef.Parameters[callMethodRef.Parameters.Count - 1];
+                if (lastParam.ParameterType.IsByReference)
+                {
+                    // replace method `void op(..., valuetype& result)`
+                    return ProcessOpCall_retout(processor, callInstruction, callMethodRef, methodOpName);
+                }
+            }
+            else if (callMethodRef.ReturnType.IsValueType)
+            {
+                // replace method `valuetype op(...)`
+                return ProcessOpCall_retval(processor, callInstruction, callMethodRef, methodOpName);
+            }
+            
+            return false;
+        }
+
+        private bool ProcessOpCall_retval(ILProcessor processor, Instruction callInstruction, MethodReference callMethodRef, string methodOpName)
+        {                
             MethodDefinition currentMethod = processor.Body.Method;
             
-
             var prevInstruction = callInstruction.Previous;
             
 
@@ -204,7 +229,11 @@ namespace PostOpt
 
             return false;
         }
-
+        
+        private bool ProcessOpCall_retout(ILProcessor processor, Instruction callInstruction, MethodReference callMethodRef, string methodOpName)
+        {
+            return false;
+        }
 
         private static Instruction GetMethodRefOp_vrv(ILProcessor processor, MethodReference callMethodRef, string methodOpName)
         {
