@@ -58,6 +58,18 @@ namespace Xna.Framework
             r.X = a.X + b.X;
             r.Y = a.Y + b.Y;
         }
+           
+        public static void Add(ref Vector2 a, Vector2 b, out Vector2 r)
+        {
+            r.X = a.X + b.X;
+            r.Y = a.Y + b.Y;
+        }
+             
+        public static void Add(Vector2 a, ref Vector2 b, out Vector2 r)
+        {
+            r.X = a.X + b.X;
+            r.Y = a.Y + b.Y;
+        }
 
         public static void Add(ref Vector2 a, ref Vector2 b, out Vector2 r)
         {

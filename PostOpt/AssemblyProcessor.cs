@@ -105,7 +105,13 @@ namespace PostOpt
                             if (result)
                                 return true;
                         }
-                        
+
+                        if (callMethodRef.Name == "Add")
+                        {
+                            var result = ProcessOpCall(processor, callInstruction, callMethodRef, "Add");
+                            if (result)
+                                return true;
+                        }
                     }
                 }
             }
@@ -121,109 +127,150 @@ namespace PostOpt
                 if (lastParam.ParameterType.IsByReference)
                 {
                     // replace method `void op(..., valuetype& result)`
-                    return ProcessOpCall_retout(processor, callInstruction, callMethodRef, methodOpName);
+                    var result = ProcessOpCall_retout(processor, callInstruction, callMethodRef, methodOpName);
+                    if (result == true)
+                        return true;
                 }
             }
             else if (callMethodRef.ReturnType.IsValueType)
             {
                 // replace method `valuetype op(...)`
-                return ProcessOpCall_retval(processor, callInstruction, callMethodRef, methodOpName);
+                var result = ProcessOpCall_retval(processor, callInstruction, callMethodRef, methodOpName);
+                if (result == true)
+                    return true;
+
+                result = ProcessOpCall_retval2(processor, callInstruction, callMethodRef, methodOpName);                
+                if (result == true)
+                    return true;
+
             }
             
             return false;
         }
 
-        private bool ProcessOpCall_retval(ILProcessor processor, Instruction callInstruction, MethodReference callMethodRef, string methodOpName)
-        {                
+        private bool ProcessOpCall_retval2(ILProcessor processor, Instruction callInstruction, MethodReference callMethodRef, string methodOpName)
+        {            
             MethodDefinition currentMethod = processor.Body.Method;
-            
+
+            var nextInstruction = callInstruction.Next;
+
+            if(Match_Stloc(nextInstruction))
+            {
+                Instruction StlocInstruction = nextInstruction;
+                int n;
+                Instruction newLdlocaInstruction = Stloc2Ldloca(processor, StlocInstruction, out n);
+                                
+                Instruction add_vvoInstruction = GetMethodRefOp2(processor, callMethodRef, methodOpName);
+                if (add_vvoInstruction == null)
+                    return false;
+                
+                processor.Remove(StlocInstruction);
+                processor.InsertBefore(callInstruction, newLdlocaInstruction);                
+                // replace 'valuetype Op(...)' with 'void Op(..., out valuetype)'
+                processor.Replace(callInstruction, add_vvoInstruction);
+
+                return true;
+            }
+
+            return false;
+        }
+
+        private bool ProcessOpCall_retval(ILProcessor processor, Instruction callInstruction, MethodReference callMethodRef, string methodOpName)
+        {
+            MethodDefinition currentMethod = processor.Body.Method;
+
             var prevInstruction = callInstruction.Previous;
-            
 
-            if (Match_Ldloc(prevInstruction))
+            int currentParamIdx = callMethodRef.Parameters.Count - 1;
+            // for now we support only operators (with two arguments). currentParamIdx has to be #1.
+            if (currentParamIdx != 1)
+                throw new InvalidOperationException();
+
+            var currentParam = callMethodRef.Parameters[currentParamIdx];
+            var isCurrentParamByRef = currentParam.ParameterType.IsByReference;
+
+            if (isCurrentParamByRef == false)
             {
-                Instruction LdlocInstruction = prevInstruction;
-                int n;
-                Instruction newLdlocaInstruction = Ldloc2Ldloca(processor, LdlocInstruction, out n);
-
-                Instruction add_vrvInstruction = GetMethodRefOp_vrv(processor, callMethodRef, methodOpName);
-                if(add_vrvInstruction == null)
-                    return false;
-
-                // replace 'Ldloc' with 'Ldloca'
-                processor.Replace(LdlocInstruction, newLdlocaInstruction);
-                // replace 'vector2 Add(vector2,vector2)' with 'vector2 Add(vector2,vector2)'
-                processor.Replace(callInstruction, add_vrvInstruction);
-
-                return true;
-            }
-            else if (Match_Ldarg(prevInstruction))
-            {
-                Instruction LdargInstruction = prevInstruction;
-                int n;
-                Instruction newLdargaInstruction = Ldarg2Ldarga(processor, LdargInstruction, out n);
-
-                // check validity of parameter n
-                var targParam = currentMethod.Parameters[n];
-                if (targParam.ParameterType.IsByReference == true)
-                    throw new InvalidOperationException();
-
-                Instruction add_vrvInstruction = GetMethodRefOp_vrv(processor, callMethodRef, methodOpName);
-                if (add_vrvInstruction == null)
-                    return false;
-
-
-                // replace 'Ldarg' with 'Ldarga'
-                processor.Replace(LdargInstruction, newLdargaInstruction);
-                // replace 'vector2 Add(vector2,vector2)' with 'vector2 Add(vector2, ref vector2)'
-                processor.Replace(callInstruction, add_vrvInstruction);
-
-                return true;
-            }
-            else if (Match_Ldobj(prevInstruction))
-            {
-                Instruction LdobjInstruction = prevInstruction;
-
-                var ldtype = LdobjInstruction.Operand;
-                var type = callMethodRef.Parameters[1];
-
-                var prev2Instruction = LdobjInstruction.Previous;
-                if (Match_Ldarg(prev2Instruction))
+                if (Match_Ldloc(prevInstruction))
                 {
-                    Instruction LdargInstruction = prev2Instruction;
+                    Instruction LdlocInstruction = prevInstruction;
+                    int n;
+                    Instruction newLdlocaInstruction = Ldloc2Ldloca(processor, LdlocInstruction, out n);
 
+                    Instruction add_vrvInstruction = GetMethodRefOp(processor, callMethodRef, methodOpName, currentParamIdx);
+                    if (add_vrvInstruction == null)
+                        return false;
+
+                    // replace 'Ldloc' with 'Ldloca'
+                    processor.Replace(LdlocInstruction, newLdlocaInstruction);
+                    // replace 'vector2 Add(vector2,vector2)' with 'vector2 Add(vector2,vector2)'
+                    processor.Replace(callInstruction, add_vrvInstruction);
+
+                    return true;
+                }
+                else if (Match_Ldarg(prevInstruction))
+                {
+                    Instruction LdargInstruction = prevInstruction;
                     int n;
                     Instruction newLdargaInstruction = Ldarg2Ldarga(processor, LdargInstruction, out n);
 
                     // check validity of parameter n
                     var targParam = currentMethod.Parameters[n];
-                    if (targParam.ParameterType.IsByReference == false)
+                    if (targParam.ParameterType.IsByReference == true)
                         throw new InvalidOperationException();
-                    Instruction add_vrvInstruction = GetMethodRefOp_vrv(processor, callMethodRef, methodOpName);
+
+                    Instruction add_vrvInstruction = GetMethodRefOp(processor, callMethodRef, methodOpName, currentParamIdx);
                     if (add_vrvInstruction == null)
                         return false;
 
 
                     // replace 'Ldarg' with 'Ldarga'
-                    //processor.Replace(prevInstruction, newLdarga);
-                    processor.Remove(LdobjInstruction);
+                    processor.Replace(LdargInstruction, newLdargaInstruction);
                     // replace 'vector2 Add(vector2,vector2)' with 'vector2 Add(vector2, ref vector2)'
                     processor.Replace(callInstruction, add_vrvInstruction);
 
                     return true;
                 }
-            }
-            else
-            {
-                Instruction add_vvvInstruction = GetMethodRefOp_vvv(processor, callMethodRef, methodOpName);
-                if (add_vvvInstruction == null)
+                else if (Match_Ldobj(prevInstruction))
+                {
+                    Instruction LdobjInstruction = prevInstruction;
+
+                    var ldtype = LdobjInstruction.Operand;
+                    var type = callMethodRef.Parameters[1];
+
+                    var prev2Instruction = LdobjInstruction.Previous;
+                    if (Match_Ldarg(prev2Instruction))
+                    {
+                        Instruction LdargInstruction = prev2Instruction;
+
+                        int n;
+                        Instruction newLdargaInstruction = Ldarg2Ldarga(processor, LdargInstruction, out n);
+
+                        // check validity of parameter n
+                        var targParam = currentMethod.Parameters[n];
+                        if (targParam.ParameterType.IsByReference == false)
+                            throw new InvalidOperationException();
+                        Instruction add_vrvInstruction = GetMethodRefOp(processor, callMethodRef, methodOpName, currentParamIdx);
+                        if (add_vrvInstruction == null)
+                            return false;
+
+
+                        // replace 'Ldarg' with 'Ldarga'
+                        //processor.Replace(prevInstruction, newLdarga);
+                        processor.Remove(LdobjInstruction);
+                        // replace 'vector2 Add(vector2,vector2)' with 'vector2 Add(vector2, ref vector2)'
+                        processor.Replace(callInstruction, add_vrvInstruction);
+
+                        return true;
+                    }
+                }
+                else
+                {
                     return false;
-
-
-                // test replace method. 
-                // Add_vvv is identical to operator+
-                //processor.Replace(call_Op_Addition, add_vvvInstruction);
-
+                }
+            }
+            else // isCurrentParamByRef == true
+            {
                 return false;
             }
 
@@ -235,60 +282,111 @@ namespace PostOpt
             return false;
         }
 
-        private static Instruction GetMethodRefOp_vrv(ILProcessor processor, MethodReference callMethodRef, string methodOpName)
+        private static Instruction GetMethodRefOp(ILProcessor processor, MethodReference callMethodRef, string methodOpName, int currentParamIdx)
         {
-            MethodReference MethodDefOp_vrv = null;
+            MethodReference MethodDefOp = null;
             var typeDef = callMethodRef.DeclaringType.Resolve();
             foreach (var method in typeDef.Methods)
             {
-                if (method.Name == methodOpName &&
-                    method.Parameters.Count == 2 &&
-                    method.Parameters[0].ParameterType.IsByReference == false &&
-                    method.Parameters[1].ParameterType.IsByReference == true)
+                if (method.HasThis)
+                    continue;
+                if (method.Name != methodOpName)
+                    continue;                
+                if (method.ReturnType.FullName != callMethodRef.ReturnType.FullName) // 
+                    continue;
+                if (method.Parameters.Count != callMethodRef.Parameters.Count)
+                    continue;
+
+                var match = true;
+                for (int i = 0; i<method.Parameters.Count; i++)
                 {
-                    MethodDefOp_vrv = method;
-                    break;
+                    if (i ==currentParamIdx)
+                    {
+                        if (method.Parameters[i].ParameterType.IsByReference != true ||
+                            callMethodRef.Parameters[i].ParameterType.IsByReference != false)
+                        {
+                            match = false;
+                            continue;
+                        }
+                    }
+                    else
+                    {
+                        if (method.Parameters[i].ParameterType.IsByReference != callMethodRef.Parameters[i].ParameterType.IsByReference)
+                        {
+                            match = false;
+                            continue;
+                        }
+                    }
                 }
+
+                if (match != true)
+                    continue;
+
+                //if (method.Parameters[0].ParameterType.IsByReference == false &&
+                //    method.Parameters[1].ParameterType.IsByReference == true)
+                MethodDefOp = method;
+                break;
             }
 
-            if (MethodDefOp_vrv == null)
+            if (MethodDefOp == null)
             {
                 //method not found
                 return null;
             }
 
-            var methodRefOp_vrv = callMethodRef.DeclaringType.Module.ImportReference(MethodDefOp_vrv);
-            var op_vrvInstruction = processor.Create(OpCodes.Call, methodRefOp_vrv);
+            var methodRefOp = callMethodRef.DeclaringType.Module.ImportReference(MethodDefOp);
+            var op_vrvInstruction = processor.Create(OpCodes.Call, methodRefOp);
             return op_vrvInstruction;
         }
-                
-        private static Instruction GetMethodRefOp_vvv(ILProcessor processor, MethodReference callMethodRef, string methodOpName)
+
+        
+        private static Instruction GetMethodRefOp2(ILProcessor processor, MethodReference callMethodRef, string methodOpName)
         {
-            MethodReference MethodDefOp_vvv = null;
+            MethodReference MethodDefOp = null;
             var typeDef = callMethodRef.DeclaringType.Resolve();
             foreach (var method in typeDef.Methods)
             {
-                if (method.Name == methodOpName &&
-                    method.Parameters.Count == 2 &&
-                    method.Parameters[0].ParameterType.IsByReference == false &&
-                    method.Parameters[1].ParameterType.IsByReference == false)
+                if (method.HasThis)
+                    continue;
+                if (method.Name != methodOpName)
+                    continue;                
+                if (method.ReturnType.FullName != "System.Void") // 
+                    continue;
+                //if (callMethodRef.ReturnType.FullName) // 
+                //    continue;
+                if ((method.Parameters.Count-1) != callMethodRef.Parameters.Count)
+                    continue;
+
+                var match = true;
+                for (int i = 0; i < callMethodRef.Parameters.Count; i++)
                 {
-                    MethodDefOp_vvv = method;
-                    break;
+                    if (method.Parameters[i].ParameterType.IsByReference != callMethodRef.Parameters[i].ParameterType.IsByReference)
+                    {
+                        match = false;
+                        continue;
+                    }
                 }
+
+                if (match != true)
+                    continue;
+
+                //if (method.Parameters[0].ParameterType.IsByReference == false &&
+                //    method.Parameters[1].ParameterType.IsByReference == true)
+                MethodDefOp = method;
+                break;
             }
 
-            if (MethodDefOp_vvv == null)
+            if (MethodDefOp == null)
             {
                 //method not found
                 return null;
             }
 
-            var methodRefOp_vvv = callMethodRef.DeclaringType.Module.ImportReference(MethodDefOp_vvv);
-            var op_vvvInstruction = processor.Create(OpCodes.Call, methodRefOp_vvv);
-            return op_vvvInstruction;
+            var methodRefOp = callMethodRef.DeclaringType.Module.ImportReference(MethodDefOp);
+            var op_vrvInstruction = processor.Create(OpCodes.Call, methodRefOp);
+            return op_vrvInstruction;
         }
-
+        
         private static Instruction Ldloc2Ldloca(ILProcessor processor, Instruction LdlocInstruction, out int n)
         {
             if (LdlocInstruction.OpCode.Code == Code.Ldloc)
@@ -343,6 +441,34 @@ namespace PostOpt
 
             return processor.Create(OpCodes.Ldarga_S, processor.Body.Method.Parameters[n]);
         }
+                
+        private static Instruction Stloc2Ldloca(ILProcessor processor, Instruction StlocInstruction, out int n)
+        {
+            if (StlocInstruction.OpCode.Code == Code.Stloc)
+            {
+                var varDef = StlocInstruction.Operand as VariableDefinition;
+                n = varDef.Index;
+                return processor.Create(OpCodes.Ldloca, processor.Body.Variables[n]);
+            }
+            else if (StlocInstruction.OpCode.Code == Code.Stloc_S)
+            {
+                var varDef = StlocInstruction.Operand as VariableDefinition;
+                n = varDef.Index;
+            }
+            else if (StlocInstruction.OpCode.Code == Code.Stloc_0)
+                n = 0;
+            else if (StlocInstruction.OpCode.Code == Code.Stloc_1)
+                n = 1;
+            else if (StlocInstruction.OpCode.Code == Code.Stloc_2)
+                n = 2;
+            else if (StlocInstruction.OpCode.Code == Code.Stloc_3)
+                n = 3;
+            else
+                throw new InvalidOperationException();
+
+                return processor.Create(OpCodes.Ldloca_S, processor.Body.Variables[n]);
+                
+        }
 
         #region Match instruction
         private static bool Match_Call(Instruction instruction)
@@ -374,6 +500,18 @@ namespace PostOpt
         {
             return prevInstruction.OpCode.Code == Code.Ldobj;
         }
+                
+        private static bool Match_Stloc(Instruction prevInstruction)
+        {
+            return  prevInstruction.OpCode.Code == Code.Stloc_0 ||
+                    prevInstruction.OpCode.Code == Code.Stloc_1 ||
+                    prevInstruction.OpCode.Code == Code.Stloc_2 ||
+                    prevInstruction.OpCode.Code == Code.Stloc_3 ||
+                    prevInstruction.OpCode.Code == Code.Stloc_S ||
+                    prevInstruction.OpCode.Code == Code.Stloc;
+        }
+
+
         #endregion Match instruction
 
     }
