@@ -43,12 +43,22 @@ namespace testApp
             sw.Start();
             for (int c = 0; c < 10000000; c++)
             {
+                r = Vector2.Add(ref a, ref b);
+            }
+            sw.Stop();
+            System.Diagnostics.Trace.WriteLine("Add(ref,ref): " + sw.Elapsed.TotalMilliseconds+"ms");
+            System.Console.WriteLine("Add(ref,ref): " + sw.Elapsed.TotalMilliseconds+"ms");
+
+            sw.Reset();
+            
+            sw.Start();
+            for (int c = 0; c < 10000000; c++)
+            {
                 r = Vector2.Add(a, ref b);
             }
             sw.Stop();
             System.Diagnostics.Trace.WriteLine("Add(val,ref): " + sw.Elapsed.TotalMilliseconds+"ms");
             System.Console.WriteLine("Add(val,ref): " + sw.Elapsed.TotalMilliseconds+"ms");
-
 
             ///////
             
@@ -152,6 +162,16 @@ namespace testApp
             return r;
         }
                
+        public static Vector2 TestMethodAdd_rrv()
+        {
+            Vector2 a = new Vector2(3,5);
+            Vector2 b = new Vector2(7,11);
+            Vector2 r;
+
+            r = Vector2.Add(ref a, ref b);
+            return r;
+        }  
+
         public static Vector2 TestMethodAdd_vvv()
         {
             Vector2 a = new Vector2(3,5);
@@ -182,15 +202,6 @@ namespace testApp
             return r;
         }
                 
-        public static Vector2 TestMethodAdd_rrv()
-        {
-            Vector2 a = new Vector2(3,5);
-            Vector2 b = new Vector2(7,11);
-            Vector2 r;
-
-            r = Vector2.Add(ref a, ref b);
-            return r;
-        }  
 
         public static Vector2 TestMethodAdd_vvo()
         {
