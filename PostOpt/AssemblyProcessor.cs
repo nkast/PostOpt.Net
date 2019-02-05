@@ -160,19 +160,18 @@ namespace PostOpt
                 int n;
                 Instruction newLdlocaInstruction = Stloc2Ldloca(ILprocessorEx, StlocInstruction, out n);
                                 
-                Instruction add_vvoInstruction = GetMethodRefOp2(ILprocessorEx, callMethodRef, methodOpName);
-                if (add_vvoInstruction == null)
+                Instruction op_outInstruction = GetMethodRefOp2(ILprocessorEx, callMethodRef, methodOpName);
+                if (op_outInstruction == null)
                     return false;
                 
-                var callOffset = callInstruction.Offset;
+                Console.WriteLine(@"Patching " + callMethodRef.FullName +@" (0x"+callInstruction.Offset.ToString("X")+")");
+                Console.WriteLine(@" ...into " + ((MethodReference)op_outInstruction.Operand).FullName);
 
                 ILprocessorEx.Processor.Remove(StlocInstruction);
                 ILprocessorEx.Processor.InsertBefore(callInstruction, newLdlocaInstruction);                
                 // replace 'valuetype Op(...)' with 'void Op(..., out valuetype)'
-                ILprocessorEx.Processor.Replace(callInstruction, add_vvoInstruction);
+                ILprocessorEx.Replace(callInstruction, op_outInstruction);
                 
-                Console.WriteLine(@"Patching " + callMethodRef.FullName +@" (0x"+callOffset.ToString("X")+")");
-                Console.WriteLine(@" ...into " + ((MethodReference)add_vvoInstruction.Operand).FullName);
                 return true;
             }
 
@@ -207,15 +206,14 @@ namespace PostOpt
                         if (op_refInstruction == null)
                             return false;
                     
-                        var callOffset = callInstruction.Offset;
+                        Console.WriteLine(@"Patching " + callMethodRef.FullName +@" (0x"+callInstruction.Offset.ToString("X")+")");
+                        Console.WriteLine(@" ...into " + ((MethodReference)op_refInstruction.Operand).FullName);
 
                         // replace 'Ldloc' with 'Ldloca'
                         ILprocessorEx.Processor.Replace(LdlocInstruction, newLdlocaInstruction);
                         // replace 'vector2 Add(vector2,vector2)' with 'vector2 Add(vector2,vector2)'
-                        ILprocessorEx.Processor.Replace(callInstruction, op_refInstruction);
+                        ILprocessorEx.Replace(callInstruction, op_refInstruction);
                                         
-                        Console.WriteLine(@"Patching " + callMethodRef.FullName +@" (0x"+callOffset.ToString("X")+")");
-                        Console.WriteLine(@" ...into " + ((MethodReference)op_refInstruction.Operand).FullName);
                         return true;
                     }
                     else if (Match_Ldarg(instruction))
@@ -233,15 +231,14 @@ namespace PostOpt
                         if (op_refInstruction == null)
                             return false;
                     
-                        var callOffset = callInstruction.Offset;
+                        Console.WriteLine(@"Patching " + callMethodRef.FullName +@" (0x"+callInstruction.Offset.ToString("X")+")");
+                        Console.WriteLine(@" ...into " + ((MethodReference)op_refInstruction.Operand).FullName);
 
                         // replace 'Ldarg' with 'Ldarga'
                         ILprocessorEx.Processor.Replace(LdargInstruction, newLdargaInstruction);
                         // replace 'vector2 Add(vector2,vector2)' with 'vector2 Add(vector2, ref vector2)'
-                        ILprocessorEx.Processor.Replace(callInstruction, op_refInstruction);
+                        ILprocessorEx.Replace(callInstruction, op_refInstruction);
                     
-                        Console.WriteLine(@"Patching " + callMethodRef.FullName +@" (0x"+callOffset.ToString("X")+")");
-                        Console.WriteLine(@" ...into " + ((MethodReference)op_refInstruction.Operand).FullName);
                         return true;
                     }
                     else if (Match_Ldobj(instruction))
@@ -267,13 +264,13 @@ namespace PostOpt
                                 return false;
                         
                             var callOffset = callInstruction.Offset;
+                            Console.WriteLine(@"Patching " + callMethodRef.FullName +@" (0x"+callInstruction.Offset.ToString("X")+")");
+                            Console.WriteLine(@" ...into " + ((MethodReference)op_refInstruction.Operand).FullName);
                             
                             ILprocessorEx.Processor.Remove(LdobjInstruction);
                             // replace 'vector2 Add(vector2,vector2)' with 'vector2 Add(vector2, ref vector2)'
                             ILprocessorEx.Processor.Replace(callInstruction, op_refInstruction);
                         
-                            Console.WriteLine(@"Patching " + callMethodRef.FullName +@" (0x"+callOffset.ToString("X")+")");
-                            Console.WriteLine(@" ...into " + ((MethodReference)op_refInstruction.Operand).FullName);
                             return true;
                         }
                     }
@@ -431,8 +428,8 @@ namespace PostOpt
             }
 
             var methodRefOp = callMethodRef.DeclaringType.Module.ImportReference(MethodDefOp);
-            var op_refInstruction = ILprocessor.Create(OpCodes.Call, methodRefOp);
-            return op_refInstruction;
+            var op_outInstruction = ILprocessor.Create(OpCodes.Call, methodRefOp);
+            return op_outInstruction;
         }
         
         private static Instruction Ldloc2Ldloca(ILProcessorEx ILprocessorEx, Instruction LdlocInstruction, out int n)
