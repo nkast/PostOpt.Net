@@ -174,6 +174,7 @@ namespace PostOpt
                 processor.Replace(callInstruction, add_vvoInstruction);
                 
                 Console.WriteLine(@"Patching " + callMethodRef.FullName +@" (0x"+callOffset.ToString("X")+")");
+                Console.WriteLine(@" ...into " + ((MethodReference)add_vvoInstruction.Operand).FullName);
                 return true;
             }
 
@@ -188,104 +189,110 @@ namespace PostOpt
             // for now we support only operators (with two arguments). currentParamIdx has to be #1.
             if (currentParamIdx != 1)
                 throw new InvalidOperationException();
-
-            var prevInstruction = callInstruction.Previous;
-            
             var currentParam = callMethodRef.Parameters[currentParamIdx];
             var isCurrentParamByRef = currentParam.ParameterType.IsByReference;
-
-            if (isCurrentParamByRef == false)
+         
+            for(var instruction = callInstruction.Previous; instruction != null; instruction = instruction.Previous)
             {
-                if (Match_Ldloc(prevInstruction))
+                //TODO: check if there is a branch target between instruction and callInstruction and quit
+                //    break;
+                
+                if (isCurrentParamByRef == false)
                 {
-                    Instruction LdlocInstruction = prevInstruction;
-                    int n;
-                    Instruction newLdlocaInstruction = Ldloc2Ldloca(processor, LdlocInstruction, out n);
-
-                    Instruction add_vrvInstruction = GetMethodRefOp(processor, callMethodRef, methodOpName, currentParamIdx);
-                    if (add_vrvInstruction == null)
-                        return false;
-                    
-                    var callOffset = callInstruction.Offset;
-
-                    // replace 'Ldloc' with 'Ldloca'
-                    processor.Replace(LdlocInstruction, newLdlocaInstruction);
-                    // replace 'vector2 Add(vector2,vector2)' with 'vector2 Add(vector2,vector2)'
-                    processor.Replace(callInstruction, add_vrvInstruction);
-                                        
-                    Console.WriteLine(@"Patching " + callMethodRef.FullName +@" (0x"+callOffset.ToString("X")+")");
-                    return true;
-                }
-                else if (Match_Ldarg(prevInstruction))
-                {
-                    Instruction LdargInstruction = prevInstruction;
-                    int n;
-                    Instruction newLdargaInstruction = Ldarg2Ldarga(processor, LdargInstruction, out n);
-
-                    // check validity of parameter n
-                    var targParam = currentMethod.Parameters[n];
-                    if (targParam.ParameterType.IsByReference == true)
-                        throw new InvalidOperationException();
-
-                    Instruction add_vrvInstruction = GetMethodRefOp(processor, callMethodRef, methodOpName, currentParamIdx);
-                    if (add_vrvInstruction == null)
-                        return false;
-                    
-                    var callOffset = callInstruction.Offset;
-
-                    // replace 'Ldarg' with 'Ldarga'
-                    processor.Replace(LdargInstruction, newLdargaInstruction);
-                    // replace 'vector2 Add(vector2,vector2)' with 'vector2 Add(vector2, ref vector2)'
-                    processor.Replace(callInstruction, add_vrvInstruction);
-                    
-                    Console.WriteLine(@"Patching " + callMethodRef.FullName +@" (0x"+callOffset.ToString("X")+")");
-                    return true;
-                }
-                else if (Match_Ldobj(prevInstruction))
-                {
-                    Instruction LdobjInstruction = prevInstruction;
-
-                    var ldtype = LdobjInstruction.Operand;
-                    var type = callMethodRef.Parameters[1];
-
-                    var prev2Instruction = LdobjInstruction.Previous;
-                    if (Match_Ldarg(prev2Instruction))
+                    if (Match_Ldloc(instruction))
                     {
-                        Instruction LdargInstruction = prev2Instruction;
+                        Instruction LdlocInstruction = instruction;
+                        int n;
+                        Instruction newLdlocaInstruction = Ldloc2Ldloca(processor, LdlocInstruction, out n);
 
+                        Instruction add_vrvInstruction = GetMethodRefOp(processor, callMethodRef, methodOpName, currentParamIdx);
+                        if (add_vrvInstruction == null)
+                            return false;
+                    
+                        var callOffset = callInstruction.Offset;
+
+                        // replace 'Ldloc' with 'Ldloca'
+                        processor.Replace(LdlocInstruction, newLdlocaInstruction);
+                        // replace 'vector2 Add(vector2,vector2)' with 'vector2 Add(vector2,vector2)'
+                        processor.Replace(callInstruction, add_vrvInstruction);
+                                        
+                        Console.WriteLine(@"Patching " + callMethodRef.FullName +@" (0x"+callOffset.ToString("X")+")");
+                        Console.WriteLine(@" ...into " + ((MethodReference)add_vrvInstruction.Operand).FullName);
+                        return true;
+                    }
+                    else if (Match_Ldarg(instruction))
+                    {
+                        Instruction LdargInstruction = instruction;
                         int n;
                         Instruction newLdargaInstruction = Ldarg2Ldarga(processor, LdargInstruction, out n);
 
                         // check validity of parameter n
                         var targParam = currentMethod.Parameters[n];
-                        if (targParam.ParameterType.IsByReference == false)
+                        if (targParam.ParameterType.IsByReference == true)
                             throw new InvalidOperationException();
+
                         Instruction add_vrvInstruction = GetMethodRefOp(processor, callMethodRef, methodOpName, currentParamIdx);
                         if (add_vrvInstruction == null)
                             return false;
-                        
+                    
                         var callOffset = callInstruction.Offset;
 
                         // replace 'Ldarg' with 'Ldarga'
-                        //processor.Replace(prevInstruction, newLdarga);
-                        processor.Remove(LdobjInstruction);
+                        processor.Replace(LdargInstruction, newLdargaInstruction);
                         // replace 'vector2 Add(vector2,vector2)' with 'vector2 Add(vector2, ref vector2)'
                         processor.Replace(callInstruction, add_vrvInstruction);
-                        
+                    
                         Console.WriteLine(@"Patching " + callMethodRef.FullName +@" (0x"+callOffset.ToString("X")+")");
+                        Console.WriteLine(@" ...into " + ((MethodReference)add_vrvInstruction.Operand).FullName);
                         return true;
                     }
-                }
-                else
-                {
-                    return false;
-                }
-            }
-            else // isCurrentParamByRef == true
-            {
-                return false;
-            }
+                    else if (Match_Ldobj(instruction))
+                    {
+                        Instruction LdobjInstruction = instruction;
 
+                        var ldtype = LdobjInstruction.Operand;
+                        var type = callMethodRef.Parameters[1];
+                        
+                        if (Match_Ldarg(LdobjInstruction.Previous))
+                        {
+                            Instruction LdargInstruction = LdobjInstruction.Previous;
+
+                            int n;
+                            Instruction newLdargaInstruction = Ldarg2Ldarga(processor, LdargInstruction, out n);
+
+                            // check validity of parameter n
+                            var targParam = currentMethod.Parameters[n];
+                            if (targParam.ParameterType.IsByReference == false)
+                                throw new InvalidOperationException();
+                            Instruction add_vrvInstruction = GetMethodRefOp(processor, callMethodRef, methodOpName, currentParamIdx);
+                            if (add_vrvInstruction == null)
+                                return false;
+                        
+                            var callOffset = callInstruction.Offset;
+                            
+                            processor.Remove(LdobjInstruction);
+                            // replace 'vector2 Add(vector2,vector2)' with 'vector2 Add(vector2, ref vector2)'
+                            processor.Replace(callInstruction, add_vrvInstruction);
+                        
+                            Console.WriteLine(@"Patching " + callMethodRef.FullName +@" (0x"+callOffset.ToString("X")+")");
+                            Console.WriteLine(@" ...into " + ((MethodReference)add_vrvInstruction.Operand).FullName);
+                            return true;
+                        }
+                    }
+                    else
+                    {
+                        return false;
+                    }
+                }
+
+                if (Match_Nop(instruction))
+                    continue;
+                if (Match_Break(instruction))
+                    continue;
+                // Unkwown instruction. quit
+                break;
+            }
+            
             return false;
         }
         
@@ -483,6 +490,16 @@ namespace PostOpt
         }
 
         #region Match instruction
+        private static bool Match_Nop(Instruction instruction)
+        {
+            return instruction.OpCode == OpCodes.Nop;
+        }
+
+        private static bool Match_Break(Instruction instruction)
+        {
+            return instruction.OpCode == OpCodes.Break;
+        }
+
         private static bool Match_Call(Instruction instruction)
         {
             return instruction.OpCode == OpCodes.Call;
