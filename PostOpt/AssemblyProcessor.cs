@@ -40,11 +40,11 @@ namespace PostOpt
             _mainModuleDef = _mainAssemblyDef.MainModule;
 
             //Gets all types which are declared in the Main Module of "MainAssembly.dll"
-            foreach (TypeDefinition type in _mainModuleDef.Types)
-            {
-                //Writes the full name of a type
-                Console.WriteLine(type.FullName);
-            }
+            //foreach (TypeDefinition type in _mainModuleDef.Types)
+            //{
+            //    //Writes the full name of a type
+            //    Console.WriteLine(type.FullName);
+            //}
             
             var methods = from type in _mainModuleDef.Types
                           from method in type.Methods
@@ -54,7 +54,9 @@ namespace PostOpt
             {
                 try
                 {
+                    Console.WriteLine(@"Processing method body: "+ methodDefinition.FullName);
                     while (ProcessMethod(methodDefinition)) ;
+                    Console.WriteLine(@"");
                 }
                 catch (Exception ex)
                 {                    
@@ -139,7 +141,7 @@ namespace PostOpt
                 if (result == true)
                     return true;
 
-                result = ProcessOpCall_retval2(processor, callInstruction, callMethodRef, methodOpName);                
+                result = ProcessOpCall_retval2(processor, callInstruction, callMethodRef, methodOpName);
                 if (result == true)
                     return true;
 
@@ -164,11 +166,14 @@ namespace PostOpt
                 if (add_vvoInstruction == null)
                     return false;
                 
+                var callOffset = callInstruction.Offset;
+
                 processor.Remove(StlocInstruction);
                 processor.InsertBefore(callInstruction, newLdlocaInstruction);                
                 // replace 'valuetype Op(...)' with 'void Op(..., out valuetype)'
                 processor.Replace(callInstruction, add_vvoInstruction);
-
+                
+                Console.WriteLine(@"Patching " + callMethodRef.FullName +@" (0x"+callOffset.ToString("X")+")");
                 return true;
             }
 
@@ -179,13 +184,13 @@ namespace PostOpt
         {
             MethodDefinition currentMethod = processor.Body.Method;
 
-            var prevInstruction = callInstruction.Previous;
-
             int currentParamIdx = callMethodRef.Parameters.Count - 1;
             // for now we support only operators (with two arguments). currentParamIdx has to be #1.
             if (currentParamIdx != 1)
                 throw new InvalidOperationException();
 
+            var prevInstruction = callInstruction.Previous;
+            
             var currentParam = callMethodRef.Parameters[currentParamIdx];
             var isCurrentParamByRef = currentParam.ParameterType.IsByReference;
 
@@ -200,12 +205,15 @@ namespace PostOpt
                     Instruction add_vrvInstruction = GetMethodRefOp(processor, callMethodRef, methodOpName, currentParamIdx);
                     if (add_vrvInstruction == null)
                         return false;
+                    
+                    var callOffset = callInstruction.Offset;
 
                     // replace 'Ldloc' with 'Ldloca'
                     processor.Replace(LdlocInstruction, newLdlocaInstruction);
                     // replace 'vector2 Add(vector2,vector2)' with 'vector2 Add(vector2,vector2)'
                     processor.Replace(callInstruction, add_vrvInstruction);
-
+                                        
+                    Console.WriteLine(@"Patching " + callMethodRef.FullName +@" (0x"+callOffset.ToString("X")+")");
                     return true;
                 }
                 else if (Match_Ldarg(prevInstruction))
@@ -222,13 +230,15 @@ namespace PostOpt
                     Instruction add_vrvInstruction = GetMethodRefOp(processor, callMethodRef, methodOpName, currentParamIdx);
                     if (add_vrvInstruction == null)
                         return false;
-
+                    
+                    var callOffset = callInstruction.Offset;
 
                     // replace 'Ldarg' with 'Ldarga'
                     processor.Replace(LdargInstruction, newLdargaInstruction);
                     // replace 'vector2 Add(vector2,vector2)' with 'vector2 Add(vector2, ref vector2)'
                     processor.Replace(callInstruction, add_vrvInstruction);
-
+                    
+                    Console.WriteLine(@"Patching " + callMethodRef.FullName +@" (0x"+callOffset.ToString("X")+")");
                     return true;
                 }
                 else if (Match_Ldobj(prevInstruction))
@@ -253,14 +263,16 @@ namespace PostOpt
                         Instruction add_vrvInstruction = GetMethodRefOp(processor, callMethodRef, methodOpName, currentParamIdx);
                         if (add_vrvInstruction == null)
                             return false;
-
+                        
+                        var callOffset = callInstruction.Offset;
 
                         // replace 'Ldarg' with 'Ldarga'
                         //processor.Replace(prevInstruction, newLdarga);
                         processor.Remove(LdobjInstruction);
                         // replace 'vector2 Add(vector2,vector2)' with 'vector2 Add(vector2, ref vector2)'
                         processor.Replace(callInstruction, add_vrvInstruction);
-
+                        
+                        Console.WriteLine(@"Patching " + callMethodRef.FullName +@" (0x"+callOffset.ToString("X")+")");
                         return true;
                     }
                 }
