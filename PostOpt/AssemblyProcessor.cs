@@ -279,11 +279,37 @@ namespace PostOpt
                             return true;
                         }
                     }
-                    else
-                    {
-                        return false;
-                    }
+                    return false;                    
                 }
+                else // (isCurrentParamByRef == true)
+                {
+                    if (Match_Ldloca(instruction))
+                    {
+                        Instruction LdlocaInstruction = instruction;
+                        
+                        // argument sucesfully matched. Move to next argument.
+                        if (currentParamIdx == 0)
+                        {
+                            // no more arguments to match.
+                            return false;
+                        }
+                        else
+                        {
+                            //TODO: after transforming the first argument the assembly doesn't work.
+                            return false;
+
+                            // Move to next argument.
+                            currentParamIdx--; 
+                            currentParam = callMethodRef.Parameters[currentParamIdx];
+                            isCurrentParamByRef = currentParam.ParameterType.IsByReference;
+                            continue;
+                        }
+
+
+                    }
+                    return false;
+                }
+
 
                 if (Match_Nop(instruction))
                     continue;
@@ -517,12 +543,18 @@ namespace PostOpt
 
         private static bool Match_Ldarg(Instruction prevInstruction)
         {
-            return (prevInstruction.OpCode.Code == Code.Ldarg_0 ||
+            return  prevInstruction.OpCode.Code == Code.Ldarg_0 ||
                     prevInstruction.OpCode.Code == Code.Ldarg_1 ||
                     prevInstruction.OpCode.Code == Code.Ldarg_2 ||
                     prevInstruction.OpCode.Code == Code.Ldarg_3 ||
                     prevInstruction.OpCode.Code == Code.Ldarg_S ||
-                    prevInstruction.OpCode.Code == Code.Ldarg);
+                    prevInstruction.OpCode.Code == Code.Ldarg;
+        }
+                
+        private static bool Match_Ldloca(Instruction prevInstruction)
+        {
+            return  prevInstruction.OpCode.Code == Code.Ldloca_S ||
+                    prevInstruction.OpCode.Code == Code.Ldloca;
         }
 
         private static bool Match_Ldobj(Instruction prevInstruction)
