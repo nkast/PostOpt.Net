@@ -152,11 +152,9 @@ namespace PostOpt
         {   
             var ILprocessorEx = new ILProcessorEx(currentMethod);
 
-            var nextInstruction = callInstruction.Next;
-
-            if(Match_Stloc(nextInstruction))
+            if(Match_Stloc(callInstruction.Next))
             {
-                Instruction StlocInstruction = nextInstruction;
+                Instruction StlocInstruction = callInstruction.Next;
                 int n;
                 Instruction newLdlocaInstruction = Stloc2Ldloca(ILprocessorEx, StlocInstruction, out n);
                                 
