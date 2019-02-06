@@ -210,7 +210,7 @@ namespace PostOpt
                         Console.WriteLine(@" ...into " + ((MethodReference)op_refInstruction.Operand).FullName);
 
                         // replace 'Ldloc' with 'Ldloca'
-                        ILprocessorEx.Processor.Replace(LdlocInstruction, newLdlocaInstruction);
+                        ILprocessorEx.Replace(LdlocInstruction, newLdlocaInstruction);
                         // replace 'vector2 Add(vector2,vector2)' with 'vector2 Add(vector2,vector2)'
                         ILprocessorEx.Replace(callInstruction, op_refInstruction);
                                         
@@ -235,7 +235,7 @@ namespace PostOpt
                         Console.WriteLine(@" ...into " + ((MethodReference)op_refInstruction.Operand).FullName);
 
                         // replace 'Ldarg' with 'Ldarga'
-                        ILprocessorEx.Processor.Replace(LdargInstruction, newLdargaInstruction);
+                        ILprocessorEx.Replace(LdargInstruction, newLdargaInstruction);
                         // replace 'vector2 Add(vector2,vector2)' with 'vector2 Add(vector2, ref vector2)'
                         ILprocessorEx.Replace(callInstruction, op_refInstruction);
                     
@@ -269,7 +269,7 @@ namespace PostOpt
                             
                             ILprocessorEx.Processor.Remove(LdobjInstruction);
                             // replace 'vector2 Add(vector2,vector2)' with 'vector2 Add(vector2, ref vector2)'
-                            ILprocessorEx.Processor.Replace(callInstruction, op_refInstruction);
+                            ILprocessorEx.Replace(callInstruction, op_refInstruction);
                         
                             return true;
                         }
@@ -290,9 +290,6 @@ namespace PostOpt
                         }
                         else
                         {
-                            //TODO: after transforming the first argument the assembly doesn't work.
-                            return false;
-
                             // Move to next argument.
                             currentParamIdx--; 
                             currentParam = callMethodRef.Parameters[currentParamIdx];

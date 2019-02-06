@@ -25,6 +25,24 @@ namespace PostOpt
             newInstruction.Offset = targetOpOffset;
             target.Offset = 0;
 
+            UpdateBranchesTarget(target, newInstruction);
+        }
+
+        private void UpdateBranchesTarget(Instruction oldTarget, Instruction newTarget)
+        {
+            for (var instruction = this.Processor.Body.Instructions[0]; instruction != null; instruction = instruction.Next)
+            {
+                if (instruction.OpCode == OpCodes.Blt ||
+                    instruction.OpCode == OpCodes.Blt_S
+                    )
+                {
+                    if (instruction.Operand == oldTarget)
+                    {
+                        instruction.Operand = newTarget;
+                    }
+                }
+            }
+            return;
         }
     }
 }
