@@ -33,14 +33,34 @@ namespace PostOpt
 
         internal void Replace(Instruction instruction, Instruction newInstruction)
         {
+            // keep some info
             var instructionOffset = instruction.Offset;
+
             Processor.Replace(instruction, newInstruction);
+            instruction.Offset = 0; // clear Offset from the detached instruction
 
             // update offset
             newInstruction.Offset = instructionOffset;
-            instruction.Offset = 0;
 
             UpdateBranchesTarget(instruction, newInstruction);
+        }
+        
+        public void Remove(Instruction instruction)
+        {
+            // keep some info
+            var instructionOffset = instruction.Offset;
+            var nextInstruction = instruction.Next;
+            // there sould be at least a ret after the removed instruction in case it was a branch target.
+            // otherwise UpdateBranchesTarget(instruction, newInstruction) will fail.
+            if (nextInstruction == null) 
+                throw new InvalidOperationException();
+            
+            Processor.Remove(instruction);
+            instruction.Offset = 0; // clear Offset from the detached instruction
+            
+            // update offset
+                                    
+            UpdateBranchesTarget(instruction, nextInstruction);
         }
 
         private void UpdateBranchesTarget(Instruction oldTarget, Instruction newTarget)

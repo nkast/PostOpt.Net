@@ -165,7 +165,7 @@ namespace PostOpt
                 Console.WriteLine(@"Patching " + callMethodRef.FullName +@" (0x"+callInstruction.Offset.ToString("X")+")");
                 Console.WriteLine(@" ...into " + ((MethodReference)op_outInstruction.Operand).FullName);
 
-                ILprocessorEx.Processor.Remove(StlocInstruction);
+                ILprocessorEx.Remove(StlocInstruction);
                 ILprocessorEx.Processor.InsertBefore(callInstruction, newLdlocaInstruction);                
                 // replace 'valuetype Op(...)' with 'void Op(..., out valuetype)'
                 ILprocessorEx.Replace(callInstruction, op_outInstruction);
@@ -265,7 +265,7 @@ namespace PostOpt
                             Console.WriteLine(@"Patching " + callMethodRef.FullName +@" (0x"+callInstruction.Offset.ToString("X")+")");
                             Console.WriteLine(@" ...into " + ((MethodReference)op_refInstruction.Operand).FullName);
                             
-                            ILprocessorEx.Processor.Remove(LdobjInstruction);
+                            ILprocessorEx.Remove(LdobjInstruction);
                             // replace 'vector2 Add(vector2,vector2)' with 'vector2 Add(vector2, ref vector2)'
                             ILprocessorEx.Replace(callInstruction, op_refInstruction);
                         
