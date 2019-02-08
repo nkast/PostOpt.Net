@@ -166,7 +166,7 @@ namespace PostOpt
                 Console.WriteLine(@" ...into " + ((MethodReference)op_outInstruction.Operand).FullName);
 
                 ILprocessorEx.Remove(StlocInstruction);
-                ILprocessorEx.Processor.InsertBefore(callInstruction, newLdlocaInstruction);                
+                ILprocessorEx.InsertBefore(callInstruction, newLdlocaInstruction);
                 // replace 'valuetype Op(...)' with 'void Op(..., out valuetype)'
                 ILprocessorEx.Replace(callInstruction, op_outInstruction);
                 

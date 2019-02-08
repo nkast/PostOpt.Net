@@ -6,43 +6,34 @@ namespace PostOpt
 {
     internal class ILProcessorEx
     {
-        public readonly ILProcessor Processor;
-        public readonly MethodDefinition Method;
-        
+        private readonly ILProcessor _processor;
+
+        public readonly MethodDefinition Method;        
 
         public ILProcessorEx(MethodDefinition method)
         {
             Method = method;
-            Processor = method.Body.GetILProcessor();
+            _processor = method.Body.GetILProcessor();
         }
 
-        internal Instruction Create(OpCode opcode, MethodReference method)
+        public Instruction Create(OpCode opcode, MethodReference method)
         {
-            return Processor.Create(opcode, method);
+            return _processor.Create(opcode, method);
         }
 
         public Instruction Create(OpCode opcode, ParameterDefinition parameter)
         {            
-            return Processor.Create(opcode, parameter);
+            return _processor.Create(opcode, parameter);
         }
         
         public Instruction Create(OpCode opcode, VariableDefinition variable)
         {
-            return Processor.Create(opcode, variable);
+            return _processor.Create(opcode, variable);
         }
 
-        internal void Replace(Instruction instruction, Instruction newInstruction)
+        public void InsertBefore(Instruction instruction, Instruction newInstruction)
         {
-            // keep some info
-            var instructionOffset = instruction.Offset;
-
-            Processor.Replace(instruction, newInstruction);
-            instruction.Offset = 0; // clear Offset from the detached instruction
-
-            // update offset
-            newInstruction.Offset = instructionOffset;
-
-            UpdateBranchesTarget(instruction, newInstruction);
+            _processor.InsertBefore(instruction, newInstruction);
         }
         
         public void Remove(Instruction instruction)
@@ -55,12 +46,26 @@ namespace PostOpt
             if (nextInstruction == null) 
                 throw new InvalidOperationException();
             
-            Processor.Remove(instruction);
+            _processor.Remove(instruction);
             instruction.Offset = 0; // clear Offset from the detached instruction
             
             // update offset
                                     
             UpdateBranchesTarget(instruction, nextInstruction);
+        }
+
+        public void Replace(Instruction instruction, Instruction newInstruction)
+        {
+            // keep some info
+            var instructionOffset = instruction.Offset;
+
+            _processor.Replace(instruction, newInstruction);
+            instruction.Offset = 0; // clear Offset from the detached instruction
+
+            // update offset
+            newInstruction.Offset = instructionOffset;
+
+            UpdateBranchesTarget(instruction, newInstruction);
         }
 
         private void UpdateBranchesTarget(Instruction oldTarget, Instruction newTarget)
