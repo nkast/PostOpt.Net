@@ -33,7 +33,22 @@ namespace PostOpt
 
         public void InsertBefore(Instruction instruction, Instruction newInstruction)
         {
+            // keep some info
+            var instructionOffset = instruction.Offset;
+
             _processor.InsertBefore(instruction, newInstruction);
+            
+            // update offset
+            newInstruction.Offset = instructionOffset;
+            // update offsets
+            int newInstructionSize = newInstruction.GetSize();
+            int offsetDiff = newInstructionSize;
+            for (var followingInstruction = instruction; followingInstruction != null; followingInstruction = followingInstruction.Next)
+            {
+                followingInstruction.Offset += offsetDiff;
+            }
+                        
+            UpdateBranchesTarget(instruction, newInstruction);
         }
         
         public void Remove(Instruction instruction)
@@ -49,14 +64,14 @@ namespace PostOpt
             _processor.Remove(instruction);
             instruction.Offset = 0; // clear Offset from the detached instruction
             
-            // update offsets            
+            // update offsets
             int oldInstructionSize = instruction.GetSize();
             int offsetDiff = - oldInstructionSize;
             for (var followingInstruction = nextInstruction; followingInstruction != null; followingInstruction = followingInstruction.Next)
             {
                 followingInstruction.Offset += offsetDiff;
             }
-                                    
+            
             UpdateBranchesTarget(instruction, nextInstruction);
         }
 
