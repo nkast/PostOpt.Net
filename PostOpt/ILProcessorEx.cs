@@ -49,7 +49,13 @@ namespace PostOpt
             _processor.Remove(instruction);
             instruction.Offset = 0; // clear Offset from the detached instruction
             
-            // update offset
+            // update offsets            
+            int oldInstructionSize = instruction.GetSize();
+            int offsetDiff = - oldInstructionSize;
+            for (var followingInstruction = nextInstruction; followingInstruction != null; followingInstruction = followingInstruction.Next)
+            {
+                followingInstruction.Offset += offsetDiff;
+            }
                                     
             UpdateBranchesTarget(instruction, nextInstruction);
         }
