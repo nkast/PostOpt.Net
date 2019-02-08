@@ -31,16 +31,16 @@ namespace PostOpt
             return Processor.Create(opcode, variable);
         }
 
-        internal void Replace(Instruction target, Instruction newInstruction)
+        internal void Replace(Instruction instruction, Instruction newInstruction)
         {
-            var targetOpOffset = target.Offset;
-            Processor.Replace(target, newInstruction);
+            var instructionOffset = instruction.Offset;
+            Processor.Replace(instruction, newInstruction);
 
             // update offset
-            newInstruction.Offset = targetOpOffset;
-            target.Offset = 0;
+            newInstruction.Offset = instructionOffset;
+            instruction.Offset = 0;
 
-            UpdateBranchesTarget(target, newInstruction);
+            UpdateBranchesTarget(instruction, newInstruction);
         }
 
         private void UpdateBranchesTarget(Instruction oldTarget, Instruction newTarget)
