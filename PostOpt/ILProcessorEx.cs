@@ -64,6 +64,17 @@ namespace PostOpt
 
             // update offset
             newInstruction.Offset = instructionOffset;
+            // update offsets
+            int oldInstructionSize = instruction.GetSize();
+            int newInstructionSize = newInstruction.GetSize();
+            if (oldInstructionSize != newInstructionSize)
+            {
+                int offsetDiff = newInstructionSize - oldInstructionSize;
+                for (var followingInstruction = newInstruction.Next; followingInstruction != null; followingInstruction = followingInstruction.Next)
+                {
+                    followingInstruction.Offset += offsetDiff;
+                }
+            }
 
             UpdateBranchesTarget(instruction, newInstruction);
         }
