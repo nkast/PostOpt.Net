@@ -321,8 +321,6 @@ namespace PostOpt
 
         private static Instruction GetMethodRefOp(ILProcessorEx ILprocessorEx, MethodReference callMethodRef, string methodOpName, int currentParamIdx)
         {
-            var ILprocessor = ILprocessorEx.Processor;
-
             MethodReference MethodDefOp = null;
             var typeDef = callMethodRef.DeclaringType.Resolve();
             foreach (var method in typeDef.Methods)
@@ -374,14 +372,12 @@ namespace PostOpt
             }
 
             var methodRefOp = callMethodRef.DeclaringType.Module.ImportReference(MethodDefOp);
-            var op_refInstruction = ILprocessor.Create(OpCodes.Call, methodRefOp);
+            var op_refInstruction = ILprocessorEx.Create(OpCodes.Call, methodRefOp);
             return op_refInstruction;
         }
                 
         private static Instruction GetMethodRefOp2(ILProcessorEx ILprocessorEx, MethodReference callMethodRef, string methodOpName)
         {
-            var ILprocessor = ILprocessorEx.Processor;
-
             MethodReference MethodDefOp = null;
             var typeDef = callMethodRef.DeclaringType.Resolve();
             foreach (var method in typeDef.Methods)
@@ -423,19 +419,17 @@ namespace PostOpt
             }
 
             var methodRefOp = callMethodRef.DeclaringType.Module.ImportReference(MethodDefOp);
-            var op_outInstruction = ILprocessor.Create(OpCodes.Call, methodRefOp);
+            var op_outInstruction = ILprocessorEx.Create(OpCodes.Call, methodRefOp);
             return op_outInstruction;
         }
         
         private static Instruction Ldloc2Ldloca(ILProcessorEx ILprocessorEx, Instruction LdlocInstruction, out int n)
         {
-            var ILprocessor = ILprocessorEx.Processor;
-
             if (LdlocInstruction.OpCode.Code == Code.Ldloc)
             {
                 var varDef = LdlocInstruction.Operand as VariableDefinition;
                 n = varDef.Index;
-                return ILprocessor.Create(OpCodes.Ldloca, ILprocessor.Body.Variables[n]);
+                return ILprocessorEx.Create(OpCodes.Ldloca, ILprocessorEx.Method.Body.Variables[n]);
             }
             else if (LdlocInstruction.OpCode.Code == Code.Ldloc_S)
             {
@@ -453,19 +447,16 @@ namespace PostOpt
             else
                 throw new InvalidOperationException();
 
-                return ILprocessor.Create(OpCodes.Ldloca_S, ILprocessor.Body.Variables[n]);
-                
+                return ILprocessorEx.Create(OpCodes.Ldloca_S, ILprocessorEx.Method.Body.Variables[n]);                
         }
         
         private static Instruction Ldarg2Ldarga(ILProcessorEx ILprocessorEx, Instruction LdargInstruction, out int n)
         {
-            var ILprocessor = ILprocessorEx.Processor;
-
             if (LdargInstruction.OpCode.Code == Code.Ldarg)
             {
                 var varDef = LdargInstruction.Operand as VariableDefinition;
                 n = varDef.Index;
-                return ILprocessor.Create(OpCodes.Ldarga, ILprocessor.Body.Method.Parameters[n]);
+                return ILprocessorEx.Create(OpCodes.Ldarga, ILprocessorEx.Method.Parameters[n]);
             }
             else if (LdargInstruction.OpCode.Code == Code.Ldarg_S)
             {
@@ -483,18 +474,16 @@ namespace PostOpt
             else
                 throw new InvalidOperationException();
 
-            return ILprocessor.Create(OpCodes.Ldarga_S, ILprocessor.Body.Method.Parameters[n]);
+            return ILprocessorEx.Create(OpCodes.Ldarga_S, ILprocessorEx.Method.Parameters[n]);
         }
                 
         private static Instruction Stloc2Ldloca(ILProcessorEx ILprocessorEx, Instruction StlocInstruction, out int n)
         {
-            var ILprocessor = ILprocessorEx.Processor;
-
             if (StlocInstruction.OpCode.Code == Code.Stloc)
             {
                 var varDef = StlocInstruction.Operand as VariableDefinition;
                 n = varDef.Index;
-                return ILprocessor.Create(OpCodes.Ldloca, ILprocessor.Body.Variables[n]);
+                return ILprocessorEx.Create(OpCodes.Ldloca, ILprocessorEx.Method.Body.Variables[n]);
             }
             else if (StlocInstruction.OpCode.Code == Code.Stloc_S)
             {
@@ -512,7 +501,7 @@ namespace PostOpt
             else
                 throw new InvalidOperationException();
 
-                return ILprocessor.Create(OpCodes.Ldloca_S, ILprocessor.Body.Variables[n]);
+                return ILprocessorEx.Create(OpCodes.Ldloca_S, ILprocessorEx.Method.Body.Variables[n]);
                 
         }
 

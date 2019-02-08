@@ -16,6 +16,21 @@ namespace PostOpt
             Processor = method.Body.GetILProcessor();
         }
 
+        internal Instruction Create(OpCode opcode, MethodReference method)
+        {
+            return Processor.Create(opcode, method);
+        }
+
+        public Instruction Create(OpCode opcode, ParameterDefinition parameter)
+        {            
+            return Processor.Create(opcode, parameter);
+        }
+        
+        public Instruction Create(OpCode opcode, VariableDefinition variable)
+        {
+            return Processor.Create(opcode, variable);
+        }
+
         internal void Replace(Instruction target, Instruction newInstruction)
         {
             var targetOpOffset = target.Offset;
@@ -30,7 +45,7 @@ namespace PostOpt
 
         private void UpdateBranchesTarget(Instruction oldTarget, Instruction newTarget)
         {
-            for (var instruction = this.Processor.Body.Instructions[0]; instruction != null; instruction = instruction.Next)
+            for (var instruction = this.Method.Body.Instructions[0]; instruction != null; instruction = instruction.Next)
             {
                 if (instruction.OpCode == OpCodes.Beq
                  || instruction.OpCode == OpCodes.Beq_S
