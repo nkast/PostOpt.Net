@@ -116,6 +116,11 @@ namespace PostOpt
                 }
             }
 
+            // fix short branches
+            Mono.Cecil.Rocks.MethodBodyRocks.SimplifyMacros(currentMethod.Body);
+            Mono.Cecil.Rocks.MethodBodyRocks.OptimizeMacros(currentMethod.Body);
+            Mono.Cecil.Rocks.MethodBodyRocks.Optimize(currentMethod.Body);
+
             return false;
         }
 
