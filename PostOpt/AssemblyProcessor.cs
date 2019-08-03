@@ -30,10 +30,6 @@ namespace PostOpt
             _mainAssemblyDef = AssemblyDefinition.ReadAssembly(_mainAssemblyFilename);
         }
 
-        public void Save(string newfilename)
-        {
-            _mainModuleDef.Write(newfilename);
-        }
 
         public void ProcessMainModule()
         {
@@ -79,34 +75,34 @@ namespace PostOpt
                     if (!callMethodRef.HasParameters)
                         continue;
 
-                    if (callMethodRef.DeclaringType.FullName == "Xna.Framework.Vector2")
+                    if (Match_MethodDeclaringType(callMethodRef, "Xna.Framework.Vector2"))
                     {
-                        if (callMethodRef.Name == "op_Addition")
+                        if (Match_MethodName(callMethodRef, "op_Addition"))
                         {
                             var result = ProcessOpCall(currentMethod, callInstruction, callMethodRef, "Add");
                             if (result)
                                 return true;
                         }
-                        if (callMethodRef.Name == "op_Subtraction")
+                        if (Match_MethodName(callMethodRef, "op_Subtraction"))
                         {
                             var result = ProcessOpCall(currentMethod, callInstruction, callMethodRef, "Subtract");
                             if (result)
                                 return true;
                         }
-                        if (callMethodRef.Name == "op_Multiply")
+                        if (Match_MethodName(callMethodRef, "op_Multiply"))
                         {
                             var result = ProcessOpCall(currentMethod, callInstruction, callMethodRef, "Multiply");
                             if (result)
                                 return true;
                         }
-                        if (callMethodRef.Name == "op_Division")
+                        if (Match_MethodName(callMethodRef, "op_Division"))
                         {
                             var result = ProcessOpCall(currentMethod, callInstruction, callMethodRef, "Divide");
                             if (result)
                                 return true;
                         }
 
-                        if (callMethodRef.Name == "Add")
+                        if (Match_MethodName(callMethodRef, "Add"))
                         {
                             var result = ProcessOpCall(currentMethod, callInstruction, callMethodRef, "Add");
                             if (result)
@@ -570,5 +566,19 @@ namespace PostOpt
 
         #endregion Match instruction
 
+        private static bool Match_MethodDeclaringType(MethodReference callMethodRef, string declaringType)
+        {
+            return callMethodRef.DeclaringType.FullName == declaringType;
+        }
+
+        private static bool Match_MethodName(MethodReference callMethodRef, string methodName)
+        {
+            return callMethodRef.Name == methodName;
+        }
+
+        public void Save(string newfilename)
+        {
+            _mainModuleDef.Write(newfilename);
+        }
     }
 }
