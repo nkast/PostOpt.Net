@@ -3,11 +3,13 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 14
 VisualStudioVersion = 14.0.25420.1
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "testApp", "TestApp\TestApp.csproj", "{A01E91C4-D496-4612-9D42-99E0E76865C8}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestApp", "TestApp\TestApp.csproj", "{A01E91C4-D496-4612-9D42-99E0E76865C8}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestLib", "TestLib\TestLib.csproj", "{CFD1D385-7609-4CD5-8377-44B862728215}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PostOpt", "PostOpt\PostOpt.csproj", "{147A57AD-B392-4A66-B00C-ADA88968EB80}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Test", "Test", "{2A859956-6402-4E44-B6D0-676D77E53EEE}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -30,5 +32,9 @@ Global
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{A01E91C4-D496-4612-9D42-99E0E76865C8} = {2A859956-6402-4E44-B6D0-676D77E53EEE}
+		{CFD1D385-7609-4CD5-8377-44B862728215} = {2A859956-6402-4E44-B6D0-676D77E53EEE}
 	EndGlobalSection
 EndGlobal
