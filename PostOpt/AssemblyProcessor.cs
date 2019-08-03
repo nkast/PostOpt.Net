@@ -122,7 +122,7 @@ namespace PostOpt
 
         private bool ProcessOpCall(MethodDefinition currentMethod, Instruction callInstruction, MethodReference callMethodRef, string methodOpName)
         {
-            if (callMethodRef.ReturnType.FullName == "System.Void")
+            if (Match_VoidMethod(callMethodRef))
             {
                 var lastParam = callMethodRef.Parameters[callMethodRef.Parameters.Count - 1];
                 if (lastParam.ParameterType.IsByReference)
@@ -148,6 +148,7 @@ namespace PostOpt
             
             return false;
         }
+
 
         private bool ProcessOpCall_retval2(MethodDefinition currentMethod, Instruction callInstruction, MethodReference callMethodRef, string methodOpName)
         {   
@@ -569,6 +570,11 @@ namespace PostOpt
         private static bool Match_MethodDeclaringType(MethodReference callMethodRef, string declaringType)
         {
             return callMethodRef.DeclaringType.FullName == declaringType;
+        }
+
+        private static bool Match_VoidMethod(MethodReference callMethodRef)
+        {
+            return callMethodRef.ReturnType.FullName == "System.Void";
         }
 
         private static bool Match_MethodName(MethodReference callMethodRef, string methodName)
